@@ -1,22 +1,17 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import print_function
 import os
 import re
 from setuptools import setup
 from setuptools.command.build_py import build_py
-from setuptools.command.egg_info import egg_info
+import imp
 
 here = os.path.dirname(os.path.abspath(__file__))
-version_re = re.compile(r'"version"[^"]+"([^"]+)"')
 zurb_pkg = "zurb_foundation"
 
-try:
-    with open(os.path.join(here, 'bower.json'), "rt") as f:
-        version = version_re.search(f.read()).group(1)
-except:
-    raise Exception("Cannot find version in bower.json")
-
+version = imp.load_source(zurb_pkg, os.path.join(here, 'python', '__init__.py')).__version__
 
 class my_build_py(build_py):
     def _get_data_files(self):
@@ -31,18 +26,6 @@ class my_build_py(build_py):
                 z.append((zurb_pkg, os.path.join(src_dir, root), os.path.join(pkg_dir, root), files))
         
         return z
-    
-    def build_packages(self):
-        pkg_dir = self.get_package_dir(zurb_pkg)
-        init_py = os.path.join(pkg_dir, "__init__.py")
-        #write version
-        with open(init_py, "r+t") as f:
-            data = f.read().replace("%version%", version)
-            f.seek(0)
-            f.write(data)
-            f.truncate()
-        
-        build_py.build_packages(self)
 
 setup(
     name='zurb-foundation',
@@ -54,7 +37,9 @@ Foundation is the most advanced responsive front-end framework in the world. You
 To get started, check out <http://foundation.zurb.com/docs>
 """,
     author='ZURB Inc.',
-    license='MIT',
+    author_email = "foundation@zurb.com",
+    maintainer = "Arkadiusz Dzięgiel",
+    maintainer_email = "arkadiusz.dziegiel@glorpen.pl",
     url='http://foundation.zurb.com',
     packages=[zurb_pkg],
     package_dir={zurb_pkg:"python"},
