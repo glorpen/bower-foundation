@@ -5,3 +5,4 @@ env
 __pycache__
 .settings
 *.egg-info
+key.txt

@@ -81,15 +81,23 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     v = Versionator()
     
+    try:
+        with open("key.txt","rt") as f:
+            secret = f.read()
+    except:
+        secret = None
+    
     from bottle import route, run
 
     @route('/<key>')
     def hook(key):
-        try:
-            v.run()
-        except Exception as e:
-            v.logger.error(e)
         
+        if not (secret is None) and secret == key:
+            try:
+                v.run()
+            except Exception as e:
+                v.logger.error(e)
+            
         return ''
     
     run(host='localhost', port=8080)
