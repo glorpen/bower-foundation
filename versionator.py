@@ -7,6 +7,7 @@ from urllib.request import urlopen
 import urllib
 import os
 import logging
+from itertools import zip_longest
 
 class CommandException(Exception):
     pass
@@ -14,6 +15,9 @@ class CommandException(Exception):
 class Versionator():
     def __init__(self):
         self.logger = logging.getLogger("Versionator")
+        self.author = "mhayes"
+        self.week_in_secs = 7*24*60*60
+        self.commits_count = 10
         
     def _run_cmd(self, *args):
         p = subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -24,14 +28,55 @@ class Versionator():
             raise CommandException("Command returned %d" % ret)
         return d.decode()
     
+    def _grep_by_week_or_count(self, tag, commits):
+        """
+        Returns list of versions per self.commits_count commits or self.week_in_secs
+        """
+        
+        start = None
+        release = 1
+        i = 0
+        grouped = []
+        
+        for c in commits:
+            h, t = c.split(" ")
+            t = int(t)
+            
+            if start is None:
+                start = t
+                continue
+            
+            i+=1
+            
+            if i > self.commits_count or t - start >= self.week_in_secs:
+                grouped.append((h, self.normalize_version(tag+"-r%d"%release)))
+                release+=1
+                start = t
+                i = 0
+        
+        return grouped
+                
+    
     def get_versions(self):
-        d = self._run_cmd("git","tag")
-        return OrderedDict([(i, self.normalize_version(i)) for i in reversed(d.splitlines())])
+        tags = self._run_cmd("git","tag").splitlines()
+        
+        items = []
+        
+        for tag, tag_next in zip_longest(tags, tags[1:]):
+            d = self._run_cmd("git","log", "%s...%s" % (tag, tag_next or ""), '--author=%s' % self.author, '--pretty=format:%H %ct').splitlines()
+            if tag_next:
+                d=d[1:]
+            items.extend(self._grep_by_week_or_count(tag, reversed(d)))
+        
+        items.extend([(i, self.normalize_version(i)) for i in tags])
+        
+        items.sort(key=lambda x:V(x[1]), reverse=True)
+        return OrderedDict(items)
     
     def check_pypi_version(self, version):
         
         #skip old releases
-        if version < V("4.3.2"):
+        if V(version) < V("4.3.2"):
             return True
     
         try:
@@ -46,7 +91,7 @@ class Versionator():
                 raise e
         
     def normalize_version(self, v):
-        return V(suggest_normalized_version(v))
+        return suggest_normalized_version(v)
     
     def build_tag(self, tag, version):
         self._run_cmd("git", "checkout", "-f", "python")
@@ -80,6 +125,9 @@ if __name__ == "__main__":
     
     logging.basicConfig(level=logging.DEBUG)
     v = Versionator()
+    v.run()
+    
+    """
     
     try:
         with open("key.txt","rt") as f:
@@ -101,3 +149,4 @@ if __name__ == "__main__":
         return ''
     
     run(host='localhost', port=8080)
+    """
