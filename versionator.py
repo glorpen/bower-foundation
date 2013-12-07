@@ -52,6 +52,7 @@ class Versionator():
         self._run_cmd("git", "checkout", "-f", "python")
         self._run_cmd("git", "clean", "-fd", "python")
         self._run_cmd("git", "checkout", "-f", tag, "scss", "js", "css")
+        
         with open(os.path.join("python","__init__.py"), "r+t") as f:
             d = f.read().replace("%version%", str(version))
             f.seek(0)
@@ -64,6 +65,9 @@ class Versionator():
         
     
     def run(self):
+        self._run_cmd("git", "reset", "--hard")
+        self._run_cmd("git", "checkout", "-f")
+        self._run_cmd("git", "pull", "--no-edit", "https://github.com/zurb/bower-foundation.git")
         for tag, version in v.get_versions().items():
             if not self.check_pypi_version(version):
                 self.build_tag(tag, version)
@@ -72,7 +76,20 @@ class Versionator():
                 break
 
 
-logging.basicConfig(level=logging.DEBUG)
+if __name__ == "__main__":
+    
+    logging.basicConfig(level=logging.DEBUG)
+    v = Versionator()
+    
+    from bottle import route, run
 
-v = Versionator()
-v.run()
+    @route('/<key>')
+    def hook(key):
+        try:
+            v.run()
+        except Exception as e:
+            v.logger.error(e)
+        
+        return ''
+    
+    run(host='localhost', port=8080)
