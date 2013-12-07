@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+'''
+@author: Arkadiusz Dzięgiel
+'''
+
 import subprocess
 import json
 from verlib import NormalizedVersion as V, suggest_normalized_version
@@ -8,13 +13,19 @@ import urllib
 import os
 import logging
 from itertools import zip_longest
+from logging.handlers import SysLogHandler
+
+class MetaLogHandler(SysLogHandler):
+    def __init__(self, *args, **kwargs):
+        super(MetaLogHandler, self).__init__(*args, **kwargs)
+        self.formatter = logging.Formatter('%(asctime)s %(name)s: %(levelname)s %(message)s', '%b %e %H:%M:%S')
 
 class CommandException(Exception):
     pass
 
 class Versionator():
     def __init__(self):
-        self.logger = logging.getLogger("Versionator")
+        self.logger = logging.getLogger("zurb.versionator")
         self.author = "mhayes"
         self.week_in_secs = 7*24*60*60
         self.commits_count = 10
@@ -123,11 +134,7 @@ class Versionator():
 
 if __name__ == "__main__":
     
-    logging.basicConfig(level=logging.DEBUG)
-    v = Versionator()
-    v.run()
-    
-    """
+    logging.basicConfig(level=logging.DEBUG, handlers=[MetaLogHandler(address="/dev/log")])
     
     try:
         with open("key.txt","rt") as f:
@@ -135,9 +142,13 @@ if __name__ == "__main__":
     except:
         secret = None
     
-    from bottle import route, run
+    from bottle import route, run, Bottle
+    
+    v = Versionator()
+    v.logger.info("Starting")
+    app = Bottle()
 
-    @route('/<key>')
+    @app.route('/<key>')
     def hook(key):
         
         if not (secret is None) and secret == key:
@@ -147,6 +158,3 @@ if __name__ == "__main__":
                 v.logger.error(e)
             
         return ''
-    
-    run(host='localhost', port=8080)
-    """
