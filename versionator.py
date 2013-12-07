@@ -29,6 +29,7 @@ class Versionator():
         self.author = "mhayes"
         self.week_in_secs = 7*24*60*60
         self.commits_count = 10
+        self._cached_versions = []
         
     def _run_cmd(self, *args):
         p = subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -89,10 +90,15 @@ class Versionator():
         #skip old releases
         if V(version) < V("4.3.2"):
             return True
+        
+        if version in self._cached_versions:
+            return True
     
+        self.logger.info("Checking pypi version %s", version)
         try:
             with urlopen("https://pypi.python.org/pypi/zurb-foundation/%s/json" % version) as f:
                 f.read()
+            self._cached_versions.append(version)
             return True
                 
         except urllib.error.HTTPError as e:
@@ -105,6 +111,7 @@ class Versionator():
         return suggest_normalized_version(v)
     
     def build_tag(self, tag, version):
+        self.logger.info("Building for tag %s as ", tag, version)
         self._run_cmd("git", "checkout", "-f", "python")
         self._run_cmd("git", "clean", "-fd", "python")
         self._run_cmd("git", "checkout", "-f", tag, "scss", "js", "css")
@@ -121,9 +128,15 @@ class Versionator():
         
     
     def run(self):
+        self.logger.info("Running")
         self._run_cmd("git", "reset", "--hard")
         self._run_cmd("git", "checkout", "-f")
+        self.logger.info("Pulling upstream")
         self._run_cmd("git", "pull", "--no-edit", "https://github.com/zurb/bower-foundation.git")
+        self.logger.info("Pushing changes")
+        self._run_cmd("git", "push")
+        
+        self.logger.info("Checking versions")
         for tag, version in v.get_versions().items():
             if not self.check_pypi_version(version):
                 self.build_tag(tag, version)
@@ -151,7 +164,7 @@ if __name__ == "__main__":
     @app.route('/<key>')
     def hook(key):
         
-        if not (secret is None) and secret == key:
+        if not (secret is None) and secret.strip() == key:
             try:
                 v.run()
             except Exception as e:
