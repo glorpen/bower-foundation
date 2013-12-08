@@ -30,7 +30,10 @@ class Versionator():
         self.week_in_secs = 7*24*60*60
         self.commits_count = 10
         self._cached_versions = []
-        
+    
+    def clear_cache(self):
+        self._cached_versions.clear()
+    
     def _run_cmd(self, *args):
         p = subprocess.Popen(args, stdout=subprocess.PIPE)
         d = p.stdout.read()
@@ -144,16 +147,32 @@ class Versionator():
                 #older ones should be already packed
                 break
 
+class Secured():
+    
+    secret = None
+    
+    def load(self, filename):
+        try:
+            with open(filename,"rt") as f:
+                self.secret = f.read().strip()
+        except:
+            self.secret = None
+    
+    def secure(self, f):
+        def wrapper(key, *args, **kwargs):
+            if self.secret and self.secret == key:
+                return f(*args, **kwargs)
+            else:
+                return ""
+        return wrapper
+    
 
 if __name__ == "__main__":
     
     logging.basicConfig(level=logging.DEBUG, handlers=[MetaLogHandler(address="/dev/log")])
     
-    try:
-        with open("key.txt","rt") as f:
-            secret = f.read()
-    except:
-        secret = None
+    sec = Secured()
+    sec.load("key.txt")
     
     from bottle import route, run, Bottle
     
@@ -162,12 +181,19 @@ if __name__ == "__main__":
     app = Bottle()
 
     @app.route('/<key>')
-    def hook(key):
-        
-        if not (secret is None) and secret.strip() == key:
-            try:
-                v.run()
-            except Exception as e:
-                v.logger.error(e)
+    @sec.secure
+    def hook():
+        try:
+            v.run()
+        except Exception as e:
+            v.logger.error(e)
             
         return ''
+    
+    @app.route('/<key>/clear')
+    @sec.secure
+    def clear():
+        v.clear_cache()
+        return "ok"
+
+    #app.run(host='localhost', port=8000)
