@@ -165,35 +165,34 @@ class Secured():
             else:
                 return ""
         return wrapper
+
+logging.basicConfig(level=logging.DEBUG, handlers=[MetaLogHandler(address="/dev/log")])
+
+sec = Secured()
+sec.load("key.txt")
+
+from bottle import route, run, Bottle
+
+v = Versionator()
+v.logger.info("Starting")
+app = Bottle()
+
+@app.route('/zurb/<key>')
+@sec.secure
+def hook():
+    try:
+        v.run()
+    except Exception as e:
+        v.logger.error(e)
+        
+    return ''
+
+@app.route('/zurb/<key>/clear')
+@sec.secure
+def clear():
+    v.clear_cache()
+    return "ok"
     
 
 if __name__ == "__main__":
-    
-    logging.basicConfig(level=logging.DEBUG, handlers=[MetaLogHandler(address="/dev/log")])
-    
-    sec = Secured()
-    sec.load("key.txt")
-    
-    from bottle import route, run, Bottle
-    
-    v = Versionator()
-    v.logger.info("Starting")
-    app = Bottle()
-
-    @app.route('/<key>')
-    @sec.secure
-    def hook():
-        try:
-            v.run()
-        except Exception as e:
-            v.logger.error(e)
-            
-        return ''
-    
-    @app.route('/<key>/clear')
-    @sec.secure
-    def clear():
-        v.clear_cache()
-        return "ok"
-
-    #app.run(host='localhost', port=8000)
+    app.run(host='localhost', port=8000)
