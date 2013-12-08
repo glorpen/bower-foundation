@@ -14,6 +14,7 @@ import os
 import logging
 from itertools import zip_longest
 from logging.handlers import SysLogHandler
+from bottle import Bottle
 
 class MetaLogHandler(SysLogHandler):
     def __init__(self, *args, **kwargs):
@@ -166,18 +167,17 @@ class Secured():
                 return ""
         return wrapper
 
+
 logging.basicConfig(level=logging.DEBUG, handlers=[MetaLogHandler(address="/dev/log")])
 
 sec = Secured()
 sec.load("key.txt")
 
-from bottle import route, run, Bottle
-
 v = Versionator()
 v.logger.info("Starting")
 app = Bottle()
 
-@app.route('/zurb/<key>')
+@app.post('/zurb/<key>')
 @sec.secure
 def hook():
     try:
