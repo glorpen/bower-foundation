@@ -135,6 +135,8 @@ class Versionator():
         self.logger.info("Running")
         self._run_cmd("git", "reset", "--hard")
         self._run_cmd("git", "checkout", "-f")
+        self.logger.info("Pulling")
+        self._run_cmd("git", "pull", "--ff-only")
         self.logger.info("Pulling upstream")
         self._run_cmd("git", "pull", "--no-edit", "https://github.com/zurb/bower-foundation.git")
         self.logger.info("Pushing changes")
