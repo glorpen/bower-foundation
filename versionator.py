@@ -15,6 +15,7 @@ import logging
 from itertools import zip_longest
 from logging.handlers import SysLogHandler
 from bottle import Bottle
+import traceback
 
 class MetaLogHandler(SysLogHandler):
     def __init__(self, *args, **kwargs):
@@ -115,7 +116,7 @@ class Versionator():
         return suggest_normalized_version(v)
     
     def build_tag(self, tag, version):
-        self.logger.info("Building for tag %s as ", tag, version)
+        self.logger.info("Building for tag %s as %s", tag, version)
         self._run_cmd("git", "checkout", "-f", "python")
         self._run_cmd("git", "clean", "-fd", "python")
         self._run_cmd("git", "checkout", "-f", tag, "scss", "js", "css")
@@ -185,7 +186,7 @@ def hook():
     try:
         v.run()
     except Exception as e:
-        v.logger.error(e)
+        v.logger.error(traceback.format_exc())
         
     return ''
 
