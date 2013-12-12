@@ -28,7 +28,7 @@ class my_build_py(build_py):
         return z
 
 here = os.path.dirname(__file__)
-f = open(os.path.join(here, "README.md"), "rt")
+f = open(os.path.join(here, "README.rst"), "rt")
 readme = f.read()
 f.close()
 
