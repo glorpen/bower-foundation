@@ -27,15 +27,16 @@ class my_build_py(build_py):
         
         return z
 
+here = os.path.dirname(__file__)
+f = open(os.path.join(here, "README.md"), "rt")
+readme = f.read()
+f.close()
+
 setup(
     name='zurb-foundation',
     version=version,
     description='The most advanced responsive front-end framework in the world. Quickly create prototypes and production code for sites and apps that work on any kind of device',
-    long_description=
-"""
-Foundation is the most advanced responsive front-end framework in the world. You can quickly prototype and build sites or apps that work on any kind of device with Foundation, which includes layout constructs (like a fully responsive grid), elements and best practices.
-To get started, check out <http://foundation.zurb.com/docs>
-""",
+    long_description=readme,
     author='ZURB Inc.',
     author_email = "foundation@zurb.com",
     maintainer = "Arkadiusz Dzięgiel",
