@@ -139,7 +139,7 @@ class Versionator():
         self.logger.info("Pulling")
         self._run_cmd("git", "pull", "--ff-only")
         self.logger.info("Pulling upstream")
-        self._run_cmd("git", "pull", "--no-edit", "https://github.com/zurb/bower-foundation.git")
+        self._run_cmd("git", "pull", "-t", "--no-edit", "https://github.com/zurb/bower-foundation.git")
         self.logger.info("Pushing changes")
         self._run_cmd("git", "push")
         
