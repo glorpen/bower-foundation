@@ -668,7 +668,7 @@
     events : function (scope) {
       var self = this,
           form = self.S(scope).attr('novalidate', 'novalidate'),
-          settings = form.data(this.attr_name(true) + '-init');
+          settings = form.data(this.attr_name(true) + '-init') || {};
 
       this.invalid_attr = this.add_namespace('data-invalid');
 
@@ -687,7 +687,6 @@
             self.validate([this], e);
           })
           .on('keydown.fndtn.abide', function (e) {
-            var settings = $(this).closest('form').data(self.attr_name(true) + '-init') || {};
             if (settings.live_validate === true) {
               clearTimeout(self.timer);
               self.timer = setTimeout(function () {
@@ -706,18 +705,17 @@
     validate : function (els, e, is_ajax) {
       var validations = this.parse_patterns(els),
           validation_count = validations.length,
-          form = this.S(els[0]).closest('form'),
+          form = this.S(els[0]).closest('[data-' + this.attr_name(true) + ']'),
+          settings = form.data(this.attr_name(true) + '-init') || {},
           submit_event = /submit/.test(e.type);
 
       form.trigger('validated');
       // Has to count up to make sure the focus gets applied to the top error
       for (var i=0; i < validation_count; i++) {
         if (!validations[i] && (submit_event || is_ajax)) {
-          if (this.settings.focus_on_invalid) {
-            els[i].focus();
-          }
+          if (settings.focus_on_invalid) els[i].focus();
           form.trigger('invalid');
-          this.S(els[i]).closest('form').attr(this.invalid_attr, '');
+          this.S(els[i]).closest('[data-' + this.attr_name(true) + ']').attr(this.invalid_attr, '');
           return false;
         }
       }
@@ -767,7 +765,9 @@
 
     check_validation_and_apply_styles : function (el_patterns) {
       var i = el_patterns.length,
-          validations = [];
+          validations = [],
+          form = this.S(el_patterns[0][0]).closest('[data-' + this.attr_name(true) + ']'),
+          settings = form.data(this.attr_name(true) + '-init') || {};
 
       while (i--) {
         var el = el_patterns[i][0],
@@ -813,14 +813,14 @@
             !required && el.value.length < 1 || $(el).attr('disabled')) {
             this.S(el).removeAttr(this.invalid_attr);
             parent.removeClass('error');
-            if (label.length > 0 && this.settings.error_labels) label.removeClass('error');
+            if (label.length > 0 && settings.error_labels) label.removeClass('error');
 
             validations.push(true);
             $(el).triggerHandler('valid');
           } else {
             this.S(el).attr(this.invalid_attr, '');
             parent.addClass('error');
-            if (label.length > 0 && this.settings.error_labels) label.addClass('error');
+            if (label.length > 0 && settings.error_labels) label.addClass('error');
 
             validations.push(false);
             $(el).triggerHandler('invalid');
@@ -846,7 +846,7 @@
 
     valid_radio : function (el, required) {
       var name = el.getAttribute('name'),
-          group = this.S(el).closest("form").find("[name="+name+"]"),
+          group = this.S(el).closest('[data-' + this.attr_name(true) + ']').find("[name="+name+"]"),
           count = group.length,
           valid = false;
 
@@ -4406,7 +4406,7 @@
     },
 
     normalized_percentage : function(val, start, end) {
-      return val/(end - start);
+      return (val - start)/(end - start);
     },
 
     normalized_value : function(val, start, end, step) {
@@ -4416,7 +4416,7 @@
           mod = (point-(point%step)) / step,
           rem = point % step,
           round = ( rem >= step*0.5 ? step : 0);
-      return (mod*step + round);
+      return (mod*step + round) + start;
     },
 
     set_translate : function(ele, offset, vertical) {
@@ -4452,7 +4452,7 @@
 
     set_initial_position : function($ele) {
       var settings = $.data($ele.children('.range-slider-handle')[0], 'settings'),
-          initial = (!!settings.initial ? settings.initial : Math.floor((settings.end-settings.start)*0.5/settings.step)*settings.step),
+          initial = (!!settings.initial ? settings.initial : Math.floor((settings.end-settings.start)*0.5/settings.step)*settings.step+settings.start),
           $handle = $ele.children('.range-slider-handle');
       this.set_ui($handle, initial);
     },
@@ -4476,7 +4476,7 @@
         self.initialize_settings(handle);
 
         if (val) {
-          self.set_ui($(handle), parseInt(val));
+          self.set_ui($(handle), parseFloat(val));
         } else {
           self.set_initial_position($(this));
         }
@@ -4500,7 +4500,8 @@
       active_class: 'active',
       callback : function () {},
       deep_linking: false,
-      scroll_to_content: true
+      scroll_to_content: true,
+      is_hover: false
     },
 
     default_tab_hashes: [],
@@ -4524,12 +4525,22 @@
       var self = this,
           S = this.S;
 
-      // Click event: tab title
-      S(this.scope).off('.tab').on('click.fndtn.tab', '[' + this.attr_name() + '] > dd > a', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        self.toggle_active_tab(S(this).parent());
-      });
+      S(this.scope)
+        .off('.tab')
+        // Click event: tab title
+        .on('click.fndtn.tab', '[' + this.attr_name() + '] > dd > a', function (e) {
+          var settings = S(this).closest('[' + self.attr_name() +']').data(self.attr_name(true) + '-init');
+          if (!settings.is_hover || Modernizr.touch) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.toggle_active_tab(S(this).parent());
+          }
+        })
+        // Hover event: tab title
+        .on('mouseenter.fndtn.tab', '[' + this.attr_name() + '] > dd > a', function (e) {
+          var settings = S(this).closest('[' + self.attr_name() +']').data(self.attr_name(true) + '-init');
+          if (settings.is_hover) self.toggle_active_tab(S(this).parent());
+        });
 
       // Location hash change event
       S(window).on('hashchange.fndtn.tab', function (e) {
